@@ -1,0 +1,180 @@
+/* CSS Variables for Light and Dark Mode */
+:root {
+  --bg-color: #ffffff;
+  --text-color: #000000;
+  --nav-bg: #ffffff;
+  --nav-text: #000000;
+  --card-bg: #f9f9f9;
+  --sidebar-bg: #f9f9f9;
+  --sidebar-text: #000000;
+  --sidebar-item-bg: #f9f9f9;
+  --sidebar-item-hover: #e9ecef;
+  --sidebar-item-active: #e9ecef;
+}
+
+body.dark-mode {
+  --bg-color: #181818;
+  --text-color: #e0e0e0;
+  --nav-bg: #202020;
+  --nav-text: #e0e0e0;
+  --card-bg: #282828;
+  --sidebar-bg: #202020;
+  --sidebar-text: #e0e0e0;
+  --sidebar-item-bg: #202020;
+  --sidebar-item-hover: #383838;
+  --sidebar-item-active: #383838;
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Navbar – YouTube-inspired style */
+.navbar {
+  background-color: var(--nav-bg) !important;
+}
+
+.navbar-brand,
+.nav-link,
+.navbar-text {
+  color: var(--nav-text) !important;
+}
+
+.navbar .form-control {
+  background-color: var(--card-bg);
+  border: none;
+  color: var(--text-color);
+}
+
+.navbar .form-control:focus {
+  box-shadow: none;
+}
+
+/* Mobile Sidebar inside Navbar Collapse */
+.mobile-sidebar {
+  /* Visible only on mobile */
+  display: block;
+}
+
+@media (min-width: 768px) {
+  .mobile-sidebar {
+    display: none;
+  }
+}
+
+/* Left Sidebar Styles (visible on md and up) */
+#sidebar {
+  padding: 10px;
+  background-color: var(--sidebar-bg);
+  min-height: 100vh;
+  border-right: 1px solid rgba(128, 128, 128, 0.1);
+  transition: background-color 0.3s ease;
+}
+
+#sidebar .list-group-item {
+  background-color: var(--sidebar-item-bg);
+  color: var(--sidebar-text);
+  border: none;
+  border-radius: 8px;
+  margin-bottom: 4px;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+#sidebar .list-group-item:hover,
+#sidebar .list-group-item:focus {
+  background-color: var(--sidebar-item-hover);
+  color: var(--sidebar-text);
+}
+
+#sidebar .list-group-item.active {
+  background-color: var(--sidebar-item-active);
+  color: var(--sidebar-text);
+}
+
+/* Mobile Sidebar Styles */
+.mobile-sidebar .list-group-item {
+  background-color: var(--sidebar-item-bg);
+  color: var(--sidebar-text);
+  border: none;
+  border-radius: 8px;
+  margin-bottom: 4px;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.mobile-sidebar .list-group-item:hover,
+.mobile-sidebar .list-group-item:focus {
+  background-color: var(--sidebar-item-hover);
+  color: var(--sidebar-text);
+}
+
+.mobile-sidebar .list-group-item.active {
+  background-color: var(--sidebar-item-active);
+  color: var(--sidebar-text);
+}
+
+/* Hide the dedicated sidebar on small devices */
+@media (max-width: 767.98px) {
+  #sidebar {
+    display: none;
+  }
+}
+
+#sidebar a {
+  font-size: 0.9rem;
+}
+
+/* Media Card Styles */
+.media-card {
+  cursor: pointer;
+  transition: transform 0.3s ease;
+  background-color: var(--card-bg);
+  border: none;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.media-card:hover {
+  transform: scale(1.03);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+}
+
+.media-card img {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+}
+
+.card-body {
+  padding: 10px;
+}
+
+.card-title {
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.card-text {
+  font-size: 0.875rem;
+}
+
+/* Film info text: default light uses text-secondary; dark mode overrides to primary */
+.film-info {
+}
+
+body.dark-mode .film-info {
+  color: whitesmoke !important;
+}
+
+/* Pagination button colors */
+.btn-secondary {
+  background-color: var(--card-bg);
+  border-color: var(--card-bg);
+  color: var(--text-color);
+}
+
+/* Main content container padding */
+.grid-container {
+  padding: 20px 10px;
+}

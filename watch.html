@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Watch Media</title>
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
+    integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg=="
+    crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <!-- Plyr CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/plyr@3.6.8/dist/plyr.css" />
+  <style>
+    /* ---------- Global & Theme Variables ---------- */
+    :root {
+      --bg-color: #ffffff;
+      --text-color: #000000;
+      --nav-bg: #ffffff;
+      --nav-text: #000000;
+      --card-bg: #f9f9f9;
+    }
+
+    body.dark-mode {
+      --bg-color: #181818;
+      --text-color: #e0e0e0;
+      --nav-bg: #202020;
+      --nav-text: #e0e0e0;
+      --card-bg: #282828;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    /* ---------- Navbar (YouTube Style) ---------- */
+    .navbar {
+      background-color: var(--nav-bg) !important;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      transition: top 0.3s ease;
+      z-index: 1000;
+    }
+
+    .navbar-brand,
+    .nav-link,
+    .navbar-text {
+      color: var(--nav-text) !important;
+    }
+
+    .navbar .form-control {
+      background-color: var(--card-bg);
+      border: none;
+      color: var(--text-color);
+    }
+
+    .navbar .form-control:focus {
+      box-shadow: none;
+    }
+
+    /* ---------- Video Player & Details ---------- */
+    #player {
+      width: 100%;
+      height: auto;
+      aspect-ratio: 16/9;
+    }
+
+    /* New youtube-style title and meta section */
+    #mediaTitleSection {
+      margin-top: 0.5rem;
+      text-align: left;
+    }
+
+    #episodeNumberText {
+      font-size: 1rem;
+      color: gray;
+      margin-top: 0.25rem;
+    }
+
+    #mediaDetails .media-content {
+      display: flex;
+      gap: 1rem;
+      align-items: flex-start;
+      padding: 0.5rem;
+      margin-top: 1rem;
+    }
+
+    #mediaDetails .poster-wrapper {
+      flex-shrink: 0;
+      width: 160px;
+    }
+
+    #mediaDetails img.poster {
+      width: 160px;
+      height: 240px;
+      object-fit: cover;
+      border-radius: 8px;
+    }
+
+    .media-info {
+      background-color: var(--card-bg);
+      padding: 1rem;
+      border-radius: 8px;
+      margin-top: 1rem;
+    }
+
+    /* Additional Info block (type, year, genre, country, rating) */
+    .media-additional-info p {
+      margin: 0.3rem 0;
+    }
+
+    /* ---------- TV Controls (Season, Episode Search, Pagination, Next/Prev Episode) ---------- */
+    #tvControls {
+      margin-top: 1rem;
+      display: none;
+    }
+
+    /* New flex container for season and search */
+    .season-search-container {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    #seasonDropdownWrapper,
+    #episodeSearchWrapper {
+      flex: 0 1 300px;
+      /* Allow shrinking but limit growth */
+      margin: 0;
+      /* Remove existing margins */
+    }
+
+    /* Update the select and input to fill their containers */
+    #seasonDropdown,
+    #episodeSearch {
+      width: 100%;
+      margin: 0;
+      max-width: none;
+    }
+
+    #episodeList {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    #episodeList button {
+      min-width: 45px;
+    }
+
+    #episodePagination {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+
+    /* Use Font Awesome chevron icons for pagination buttons */
+    #episodePagination button i {
+      font-size: 1rem;
+    }
+
+    .episode-nav-btn {
+      background: none;
+      border: none;
+      color: var(--text-color);
+      cursor: pointer;
+    }
+
+    /* Next/Previous Episode Buttons below player */
+    #episodeNavButtons {
+      display: flex;
+      justify-content: flex-start;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+
+    /* ---------- Cast Styles ---------- */
+    .cast-wrapper {
+      margin-top: 20px;
+    }
+
+    .cast-list {
+      display: flex;
+      overflow-x: auto;
+      gap: 15px;
+      max-width: 100%;
+      scroll-behavior: smooth;
+    }
+
+    .cast-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      max-width: 120px;
+    }
+
+    .cast-image {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      object-fit: cover;
+      margin-bottom: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .cast-name {
+      font-weight: bold;
+      font-size: 14px;
+      margin: 4px 0;
+    }
+
+    .cast-character {
+      font-size: 12px;
+      color: gray;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- YouTube-style Navbar -->
+  <nav class="navbar navbar-expand-lg">
+    <div class="container-fluid">
+      <a class="navbar-brand d-flex align-items-center" href="index.html">
+        <i class="fa-brands fa-youtube fa-2x text-danger me-2"></i>
+        <span>Media Library</span>
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent"
+        aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon" style="filter: invert(1);"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarContent">
+        <form class="d-flex mx-auto" action="result.html" method="get" style="max-width:600px; width:100%;">
+          <input class="form-control me-2" type="search" placeholder="Search movies..." aria-label="Search" name="q"
+            autocomplete="off" />
+          <button class="btn btn-outline-secondary" type="submit">
+            <i class="fa-solid fa-magnifying-glass"></i>
+          </button>
+        </form>
+        <div class="d-flex">
+          <button id="darkModeToggle" class="btn btn-link text-decoration-none">
+            <i class="fa-solid fa-moon"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Container -->
+  <div class="container mt-5 pt-3">
+    <!-- Video Player -->
+    <div class="row justify-content-center">
+      <div class="col-12 col-lg-10">
+        <video id="player" controls></video>
+
+        <!-- YouTube-style Title & Episode Info Section -->
+        <div id="mediaTitleSection">
+          <h2 id="mediaTitle" class="mb-1"></h2>
+          <div id="episodeNumberText" style="display: none;">Episode: <span id="currentEpisodeNumber"></span></div>
+
+          <!-- Next/Previous Episode Buttons (Moved here) -->
+          <div id="episodeNavButtons" class="mt-2">
+            <button id="prevEpisodeBtn" class="btn btn-outline-primary">Previous Episode</button>
+            <button id="nextEpisodeBtn" class="btn btn-primary">Next Episode</button>
+          </div>
+        </div>
+
+        <!-- TV Controls (for TV shows only) -->
+        <div id="tvControls">
+          <div class="season-search-container">
+            <!-- Season Selector -->
+            <div id="seasonDropdownWrapper">
+              <select id="seasonDropdown" class="form-select" aria-label="Season Selector"></select>
+            </div>
+            <!-- Episode Search Box -->
+            <div id="episodeSearchWrapper">
+              <input type="text" id="episodeSearch" class="form-control" placeholder="Search episodes...">
+            </div>
+          </div>
+          <!-- Episode List & Pagination -->
+          <div id="episodeList" class="mt-3"></div>
+          <div id="episodePagination" class="mt-2">
+            <button id="episodePrevPage" class="episode-nav-btn"><i class="fa-solid fa-chevron-left"></i></button>
+            <span id="episodePageInfo"></span>
+            <button id="episodeNextPage" class="episode-nav-btn"><i class="fa-solid fa-chevron-right"></i></button>
+          </div>
+        </div>
+
+        <!-- Media Info (moved above media details) -->
+        <div id="mediaInfo" class="media-info"></div>
+
+        <!-- Media Details (Poster, Additional Info & Cast) -->
+        <div id="mediaDetails" class="mt-4"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Plyr JS -->
+  <script src="https://cdn.jsdelivr.net/npm/plyr@3.6.8/dist/plyr.min.js"></script>
+  <!-- HLS.js -->
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <script>
+    /* ---------- Global Variables ---------- */
+    const queryParams = new URLSearchParams(window.location.search);
+    const title = queryParams.get("title");
+    const type = queryParams.get("type");
+    const year = queryParams.get("year");
+    const TMDB_API_KEY = "8baba8ab6b8bbe247645bcae7df63d0d"; // Replace with your key
+
+    // For TV episode pagination
+    let currentSeasonEpisodes = [];
+    let filteredEpisodes = [];
+    let currentEpisodePage = 1;
+    const episodesPerPage = 10;
+    let currentEpisodeSelectedIndex = 0; // index within filteredEpisodes
+
+    // For country name mapping (add more as needed)
+    const countryMapping = {
+      "US": "United States",
+      "KR": "South Korea",
+      "GB": "United Kingdom",
+      "FR": "France",
+      "DE": "Germany"
+    };
+
+    // Initialize Plyr
+    const playerInstance = new Plyr("#player");
+
+    /* ---------- Fetch Media Data ---------- */
+    fetch("/data/db.json")
+      .then((response) => response.json())
+      .then((data) => {
+        const mediaInfo = document.getElementById("mediaInfo");
+        const seasonDropdown = document.getElementById("seasonDropdown");
+        const tvControls = document.getElementById("tvControls");
+
+        // Combine local DB data
+        const dbMedia = [...data.tvShows, ...data.movies];
+
+        // Fetch Ophim API data
+        fetch("https://ophim1.com/danh-sach/phim-moi-cap-nhat?page=1")
+          .then((response) => response.json())
+          .then((ophimData) => {
+            const ophimMedia = ophimData.items.map(item => ({
+              title: item.tmdb.title,
+              year: new Date(item.tmdb.release_date).getFullYear(),
+              tmdbId: item.tmdb.id,
+              type: item.tmdb.type,
+              video_url: item.video_url, // Assume provided
+              episodes: item.episodes // Assume similar structure as local DB
+            }));
+
+            const allMedia = [...dbMedia, ...ophimMedia];
+            const media = allMedia.find(item => item.title === title && item.year == year);
+            if (media) {
+              document.getElementById("mediaTitle").textContent = media.title;
+
+              // Fetch full TMDB details (using ID if available; otherwise search then fetch by ID)
+              if (media.tmdbId) {
+                fetchTMDBDetailsById(media.tmdbId, media.type);
+              } else {
+                fetchTMDBDetails(media.title, type, year);
+              }
+
+              // If TV show with episodes, show TV controls; otherwise, load video directly
+              if (type === "tv" && media.episodes && media.episodes.length > 0) {
+                tvControls.style.display = "block";
+                // Group episodes by season
+                const episodesBySeason = media.episodes.reduce((acc, episode) => {
+                  if (!acc[episode.season]) acc[episode.season] = [];
+                  acc[episode.season].push(episode);
+                  return acc;
+                }, {});
+                // Populate season dropdown
+                seasonDropdown.innerHTML = `<option value="" disabled>Select Season</option>`;
+                Object.keys(episodesBySeason).forEach((season, index) => {
+                  const option = document.createElement("option");
+                  option.value = season;
+                  option.textContent = `Season ${season}`;
+                  seasonDropdown.appendChild(option);
+                  // Auto-select first season
+                  if (index === 0) {
+                    option.selected = true;
+                    currentSeasonEpisodes = episodesBySeason[season];
+                    filteredEpisodes = [...currentSeasonEpisodes];
+
+                    // Load first episode automatically
+                    if (currentSeasonEpisodes.length > 0) {
+                      loadVideo(currentSeasonEpisodes[0].video_url);
+                      // Show episode number
+                      document.getElementById("episodeNumberText").style.display = "block";
+                      document.getElementById("currentEpisodeNumber").textContent = currentSeasonEpisodes[0].episodeNumber;
+                    }
+
+                    updateEpisodePagination();
+                    updateEpisodeNavButtons();
+                  }
+                });
+
+                // When season selected, set current episodes & load first page
+                seasonDropdown.addEventListener("change", (e) => {
+                  currentSeasonEpisodes = episodesBySeason[e.target.value];
+                  currentEpisodePage = 1;
+                  // Reset episode search
+                  document.getElementById("episodeSearch").value = "";
+                  filteredEpisodes = [...currentSeasonEpisodes];
+                  // Load first episode
+                  currentEpisodeSelectedIndex = 0;
+                  if (filteredEpisodes.length > 0) {
+                    loadVideo(filteredEpisodes[0].video_url);
+                    // Update episode number
+                    document.getElementById("currentEpisodeNumber").textContent = filteredEpisodes[0].episodeNumber;
+                  }
+                  updateEpisodePagination();
+                  updateEpisodeNavButtons();
+                });
+
+                // Episode search input filtering
+                document.getElementById("episodeSearch").addEventListener("input", (e) => {
+                  const query = e.target.value.toLowerCase();
+                  filteredEpisodes = currentSeasonEpisodes.filter(ep =>
+                    String(ep.episodeNumber).includes(query) ||
+                    (ep.title && ep.title.toLowerCase().includes(query))
+                  );
+                  currentEpisodePage = 1;
+                  // If current selected episode is filtered out, reset
+                  currentEpisodeSelectedIndex = 0;
+                  if (filteredEpisodes.length > 0) {
+                    loadVideo(filteredEpisodes[0].video_url);
+                    // Update episode number
+                    document.getElementById("currentEpisodeNumber").textContent = filteredEpisodes[0].episodeNumber;
+                  }
+                  updateEpisodePagination();
+                  updateEpisodeNavButtons();
+                });
+              } else {
+                tvControls.style.display = "none";
+                document.getElementById("episodeNavButtons").style.display = "none";
+                document.getElementById("episodeNumberText").style.display = "none";
+                loadVideo(media.video_url);
+              }
+
+              mediaInfo.innerHTML = `
+                <p><strong>Type:</strong> ${type === "tv" ? "TV Show" : "Movie"}</p>
+                <p><strong>Year:</strong> ${media.year}</p>
+              `;
+            } else {
+              mediaInfo.innerHTML = "<p>Media not found.</p>";
+            }
+          });
+      })
+      .catch(error => console.error("Error loading data:", error));
+
+    /* ---------- Video Loader ---------- */
+    function loadVideo(videoUrl) {
+      const playerElement = document.querySelector("#player");
+      if (Hls.isSupported()) {
+        const hls = new Hls();
+        hls.loadSource(videoUrl);
+        hls.attachMedia(playerElement);
+      } else if (playerElement.canPlayType("application/vnd.apple.mpegurl")) {
+        playerElement.src = videoUrl;
+      }
+    }
+
+    /* ---------- TMDB Details Fetching ---------- */
+    function fetchTMDBDetails(title, type, year) {
+      const endpoint = `https://api.themoviedb.org/3/search/${type === "tv" ? "tv" : "movie"}?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(title)}&year=${year}`;
+      fetch(endpoint)
+        .then(response => response.json())
+        .then(data => {
+          if (data.results && data.results.length > 0) {
+            fetchTMDBDetailsById(data.results[0].id, type);
+          }
+        })
+        .catch(error => console.error("Error fetching TMDB details:", error));
+    }
+
+    function fetchTMDBDetailsById(tmdbId, type) {
+      const endpoint = `https://api.themoviedb.org/3/${type === "tv" ? "tv" : "movie"}/${tmdbId}?api_key=${TMDB_API_KEY}&append_to_response=release_dates,content_ratings`;
+      fetch(endpoint)
+        .then(response => response.json())
+        .then(data => updateMediaDetails(data, type))
+        .catch(error => console.error("Error fetching TMDB details:", error));
+    }
+
+    /* ---------- Update Media Details Section ---------- */
+    function updateMediaDetails(details, type) {
+      const posterUrl = `https://image.tmdb.org/t/p/w500${details.poster_path}`;
+      const overview = details.overview;
+      // For genres, if full details available, use details.genres array (objects with name)
+      const genres = details.genres ? details.genres.map(g => g.name).join(", ") : "N/A";
+
+      // Country info: For movies, use production_countries (which have name); for TV, use origin_country (map codes)
+      let countries = "N/A";
+      if (type === "movie" && details.production_countries && details.production_countries.length > 0) {
+        countries = details.production_countries.map(c => c.name).join(", ");
+      } else if (type === "tv" && details.origin_country && details.origin_country.length > 0) {
+        countries = details.origin_country.map(code => countryMapping[code] || code).join(", ");
+      }
+
+      // User rating from vote_average
+      const userRating = details.vote_average ? `${details.vote_average.toFixed(1)}/10` : "N/A";
+
+      // Age rating: for movies, check release_dates for US certification; for TV, check content_ratings
+      let ageRating = "NR";
+      if (type === "movie" && details.release_dates && details.release_dates.results) {
+        const usRelease = details.release_dates.results.find(r => r.iso_3166_1 === "US");
+        if (usRelease && usRelease.release_dates && usRelease.release_dates.length > 0) {
+          ageRating = usRelease.release_dates[0].certification || "NR";
+        }
+      } else if (type === "tv" && details.content_ratings && details.content_ratings.results) {
+        const usRating = details.content_ratings.results.find(r => r.iso_3166_1 === "US");
+        if (usRating) {
+          ageRating = usRating.rating || "NR";
+        }
+      }
+
+      // Update mediaInfo div with all ratings and genre info
+      document.getElementById("mediaInfo").innerHTML = `
+        <p><strong>Type:</strong> ${type === "tv" ? "TV Show" : "Movie"}</p>
+        <p><strong>Year:</strong> ${details.release_date ? new Date(details.release_date).getFullYear() : details.first_air_date ? new Date(details.first_air_date).getFullYear() : "N/A"}</p>
+        <p><strong>Genre:</strong> ${genres}</p>
+        <p><strong>Country:</strong> ${countries}</p>
+        <p><strong>User Rating:</strong> ${userRating}</p>
+        <p><strong>Age Rating:</strong> ${ageRating}</p>
+      `;
+
+      // Media details now only has overview and cast
+      document.getElementById("mediaDetails").innerHTML = `
+        <div class="media-content">
+          <div class="poster-wrapper">
+            <img src="${posterUrl}" alt="${details.title || details.name} Poster" class="poster">
+          </div>
+          <div class="details-wrapper">
+            <h5>Overview</h5>
+            <p>${overview}</p>
+          </div>
+        </div>
+      `;
+
+      // Now fetch and append cast info
+      fetchCast(details.id, type);
+    }
+
+    function fetchCast(mediaId, type) {
+      const creditsEndpoint = `https://api.themoviedb.org/3/${type === "tv" ? "tv" : "movie"}/${mediaId}/credits?api_key=${TMDB_API_KEY}`;
+      fetch(creditsEndpoint)
+        .then(response => response.json())
+        .then(data => {
+          if (data.cast && data.cast.length > 0) {
+            const castList = data.cast.slice(0, 10).map(cast => `
+              <div class="cast-item">
+                <img src="${cast.profile_path ? `https://image.tmdb.org/t/p/w500${cast.profile_path}` : '/images/default_cast.png'}" 
+                     alt="${cast.name}" class="cast-image" />
+                <div class="cast-name">${cast.name}</div>
+                <div class="cast-character">${cast.character}</div>
+              </div>
+            `).join("");
+            const castHTML = `
+              <div class="cast-wrapper">
+                <h5>Top Cast</h5>
+                <div class="cast-list">${castList}</div>
+              </div>
+            `;
+            document.getElementById("mediaDetails").innerHTML += castHTML;
+          }
+        })
+        .catch(error => console.error("Error fetching cast details:", error));
+    }
+
+    /* ---------- TV Episode Pagination & Navigation ---------- */
+    // Global variables for TV episodes
+    // currentSeasonEpisodes: all episodes for selected season
+    // filteredEpisodes: episodes after filtering by search (default = currentSeasonEpisodes)
+    // currentEpisodePage: current page number (1-indexed)
+    // currentEpisodeSelectedIndex: index in filteredEpisodes of currently selected episode
+    const episodeSearchInput = document.getElementById("episodeSearch");
+    const episodeListDiv = document.getElementById("episodeList");
+    const episodePageInfo = document.getElementById("episodePageInfo");
+    const episodePrevPageBtn = document.getElementById("episodePrevPage");
+    const episodeNextPageBtn = document.getElementById("episodeNextPage");
+    const prevEpisodeBtn = document.getElementById("prevEpisodeBtn");
+    const nextEpisodeBtn = document.getElementById("nextEpisodeBtn");
+
+    function updateEpisodePagination() {
+      episodeListDiv.innerHTML = "";
+      // Use filteredEpisodes if search query exists; otherwise currentSeasonEpisodes
+      const episodes = filteredEpisodes.length ? filteredEpisodes : currentSeasonEpisodes;
+      const total = episodes.length;
+      const totalPages = Math.ceil(total / episodesPerPage);
+
+      // Ensure current page is within bounds
+      if (currentEpisodePage > totalPages) currentEpisodePage = totalPages;
+      if (currentEpisodePage < 1) currentEpisodePage = 1;
+
+      const startIdx = (currentEpisodePage - 1) * episodesPerPage;
+      const endIdx = Math.min(startIdx + episodesPerPage, total);
+
+      // Display page info
+      episodePageInfo.textContent = `Page ${currentEpisodePage} of ${totalPages}`;
+
+      // Create episode buttons for the current page
+      for (let i = startIdx; i < endIdx; i++) {
+        const btn = document.createElement("button");
+        btn.className = "btn btn-outline-primary";
+        btn.textContent = episodes[i].episodeNumber;
+        if (i === currentEpisodeSelectedIndex) {
+          btn.classList.remove("btn-outline-primary");
+          btn.classList.add("btn-primary", "text-white");
+        }
+        btn.addEventListener("click", () => {
+          currentEpisodeSelectedIndex = i;
+          loadVideo(episodes[i].video_url);
+          // Update episode number
+          document.getElementById("currentEpisodeNumber").textContent = episodes[i].episodeNumber;
+          updateEpisodePagination();
+          updateEpisodeNavButtons();
+        });
+        episodeListDiv.appendChild(btn);
+      }
+
+      // Show or hide page navigation buttons based on page number
+      episodePrevPageBtn.style.display = currentEpisodePage > 1 ? "inline-block" : "none";
+      episodeNextPageBtn.style.display = currentEpisodePage < totalPages ? "inline-block" : "none";
+    }
+
+    // Update the "Next Episode" and "Previous Episode" buttons (direct navigation)
+    function updateEpisodeNavButtons() {
+      const episodes = filteredEpisodes.length ? filteredEpisodes : currentSeasonEpisodes;
+      prevEpisodeBtn.style.display = currentEpisodeSelectedIndex > 0 ? "inline-block" : "none";
+      nextEpisodeBtn.style.display = currentEpisodeSelectedIndex < episodes.length - 1 ? "inline-block" : "none";
+    }
+
+    // Pagination button event listeners
+    episodePrevPageBtn.addEventListener("click", () => {
+      currentEpisodePage--;
+      updateEpisodePagination();
+    });
+    episodeNextPageBtn.addEventListener("click", () => {
+      currentEpisodePage++;
+      updateEpisodePagination();
+    });
+
+    // Next/Previous Episode direct navigation
+    prevEpisodeBtn.addEventListener("click", () => {
+      if (currentEpisodeSelectedIndex > 0) {
+        currentEpisodeSelectedIndex--;
+        const episodes = filteredEpisodes.length ? filteredEpisodes : currentSeasonEpisodes;
+        loadVideo(episodes[currentEpisodeSelectedIndex].video_url);
+        // Update episode number
+        document.getElementById("currentEpisodeNumber").textContent = episodes[currentEpisodeSelectedIndex].episodeNumber;
+        updateEpisodePagination();
+        updateEpisodeNavButtons();
+      }
+    });
+    nextEpisodeBtn.addEventListener("click", () => {
+      const episodes = filteredEpisodes.length ? filteredEpisodes : currentSeasonEpisodes;
+      if (currentEpisodeSelectedIndex < episodes.length - 1) {
+        currentEpisodeSelectedIndex++;
+        loadVideo(episodes[currentEpisodeSelectedIndex].video_url);
+        // Update episode number
+        document.getElementById("currentEpisodeNumber").textContent = episodes[currentEpisodeSelectedIndex].episodeNumber;
+        updateEpisodePagination();
+        updateEpisodeNavButtons();
+      }
+    });
+
+    // When episode search input changes, update filteredEpisodes and reset pagination
+    episodeSearchInput.addEventListener("input", () => {
+      const query = episodeSearchInput.value.toLowerCase();
+      filteredEpisodes = currentSeasonEpisodes.filter(ep =>
+        String(ep.episodeNumber).toLowerCase().includes(query) ||
+        (ep.title && ep.title.toLowerCase().includes(query))
+      );
+      currentEpisodePage = 1;
+      // If filtered result is not empty, select the first one
+      if (filteredEpisodes.length > 0) {
+        currentEpisodeSelectedIndex = 0;
+        loadVideo(filteredEpisodes[0].video_url);
+        // Update episode number
+        document.getElementById("currentEpisodeNumber").textContent = filteredEpisodes[0].episodeNumber;
+      }
+      updateEpisodePagination();
+      updateEpisodeNavButtons();
+    });
+  </script>
+</body>
+
+</html>

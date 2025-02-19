@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Watch KKPhim Media</title>
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
+    integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg=="
+    crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <!-- Plyr CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/plyr@3.6.8/dist/plyr.css" />
+  <style>
+    /* Basic styling similar to a YouTube theme */
+    body {
+      padding-top: 56px;
+    }
+
+    /* Player container */
+    #playerContainer {
+      position: relative;
+      max-width: 100%;
+      margin: 0 auto;
+    }
+
+    #player {
+      width: 100%;
+      height: auto;
+      aspect-ratio: 16/9;
+    }
+
+    /* Media Info & Details */
+    .media-info {
+      background-color: #f9f9f9;
+      padding: 1rem;
+      border-radius: 8px;
+      margin-top: 1rem;
+    }
+
+    .media-content {
+      display: flex;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .poster-wrapper {
+      flex-shrink: 0;
+      width: 160px;
+    }
+
+    .poster {
+      width: 160px;
+      height: 240px;
+      object-fit: cover;
+      border-radius: 8px;
+    }
+
+    /* ---------- Cast Styles ---------- */
+    .cast-wrapper {
+      margin-top: 20px;
+    }
+
+    .cast-list {
+      display: flex;
+      overflow-x: auto;
+      gap: 15px;
+      max-width: 100%;
+      scroll-behavior: smooth;
+    }
+
+    .cast-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      max-width: 120px;
+    }
+
+    .cast-image {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      object-fit: cover;
+      margin-bottom: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .cast-name {
+      font-weight: bold;
+      font-size: 14px;
+      margin: 4px 0;
+    }
+
+    .cast-character {
+      font-size: 12px;
+      color: gray;
+    }
+
+    /* TV Controls (server & episode nav) */
+    #tvControls {
+      margin-top: 2rem;
+      display: none;
+      /* shown only if episodes exist */
+    }
+
+    #serverDropdownContainer {
+      margin-bottom: 1rem;
+      text-align: center;
+    }
+
+    #serverDropdown {
+      max-width: 300px;
+      margin: 0 auto;
+    }
+
+    #episodeSearchWrapper {
+      text-align: center;
+      margin-bottom: 1rem;
+      display: none;
+      /* shown only if we want to allow searching episodes */
+    }
+
+    #episodeSearch {
+      max-width: 300px;
+      margin: 0 auto;
+    }
+
+    #episodeList {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    #episodeList button {
+      min-width: 45px;
+    }
+
+    #episodePagination {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+
+    .episode-nav-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+    }
+
+    #episodeNavButtons {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    #nowPlayingText {
+      font-weight: bold;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Navbar (YouTube Style) -->
+  <nav class="navbar navbar-expand-lg">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="index.html">
+        <i class="fa-brands fa-youtube fa-2x text-danger me-2"></i>
+        Media Library
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent"
+        aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon" style="filter: invert(1);"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarContent">
+        <form class="d-flex mx-auto" action="result.html" method="get" style="max-width:600px; width:100%;">
+          <input class="form-control me-2" type="search" placeholder="Search movies..." name="q" autocomplete="off" />
+          <button class="btn btn-outline-secondary" type="submit">
+            <i class="fa-solid fa-magnifying-glass"></i>
+          </button>
+        </form>
+        <div class="d-flex">
+          <button id="darkModeToggle" class="btn btn-link text-decoration-none">
+            <i class="fa-solid fa-moon"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Container -->
+  <div class="container mt-5 pt-3">
+    <!-- Video Player Container (Plyr only) -->
+    <div id="playerContainer" class="mt-3">
+      <video id="player" controls></video>
+    </div>
+
+    <!-- Media Title & Episode Info -->
+    <div class="mt-3">
+      <h2 id="mediaTitle" class="mb-2"></h2>
+      <div id="nowPlayingText" class="mb-2 text-secondary"></div>
+
+      <!-- Next/Previous Episode Buttons -->
+      <div class="d-flex gap-2 mb-3">
+        <button id="prevEpisodeBtn" class="btn btn-outline-primary" style="display: none;">
+          Previous Episode
+        </button>
+        <button id="nextEpisodeBtn" class="btn btn-primary" style="display: none;">
+          Next Episode
+        </button>
+      </div>
+
+      <!-- TV Controls (Server & Episode Navigation) -->
+      <div id="tvControls">
+        <!-- Server & Search Container -->
+        <div class="d-flex justify-content-center gap-3 mb-3">
+          <div id="serverDropdownContainer" style="flex: 1; max-width: 300px;"></div>
+          <div id="episodeSearchWrapper" style="flex: 1; max-width: 300px;">
+            <input type="text" id="episodeSearch" class="form-control" placeholder="Search episodes..." />
+          </div>
+        </div>
+
+        <div id="episodeList" class="mt-3"></div>
+        <div id="episodePagination" class="mt-2">
+          <button id="episodePrevPage" class="episode-nav-btn">
+            <i class="fa-solid fa-chevron-left"></i>
+          </button>
+          <span id="episodePageInfo"></span>
+          <button id="episodeNextPage" class="episode-nav-btn">
+            <i class="fa-solid fa-chevron-right"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Media Info (genre, year, rating, etc.) -->
+    <div id="mediaInfo" class="media-info"></div>
+
+    <!-- Media Details (Overview & Cast) -->
+    <div id="mediaDetails" class="mt-4"></div>
+  </div>
+
+  <!-- Bootstrap JS Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Plyr JS -->
+  <script src="https://cdn.jsdelivr.net/npm/plyr@3.6.8/dist/plyr.min.js"></script>
+  <!-- HLS.js -->
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <script>
+    /* ---------- Global Variables ---------- */
+    const queryParams = new URLSearchParams(window.location.search);
+    const slug = queryParams.get("slug");
+    const originName = queryParams.get("origin_name");
+    const paramYear = queryParams.get("year");
+    const paramType = queryParams.get("type");
+    const TMDB_API_KEY = "8baba8ab6b8bbe247645bcae7df63d0d";
+    const TMDB_BASE = "https://api.themoviedb.org/3";
+
+    // Episode controls
+    let currentServerEpisodes = [];
+    let filteredEpisodes = [];
+    let currentEpisodePage = 1;
+    const episodesPerPage = 10;
+    let currentEpisodeSelectedIndex = 0;
+
+    // Initialize Plyr
+    const plyrInstance = new Plyr("#player");
+    const playerEl = document.getElementById("player");
+
+    // Load video (M3U8) with HLS
+    function loadVideo(url) {
+      if (!url) return;
+      if (Hls.isSupported()) {
+        const hls = new Hls();
+        hls.loadSource(url);
+        hls.attachMedia(playerEl);
+      } else if (playerEl.canPlayType("application/vnd.apple.mpegurl")) {
+        playerEl.src = url;
+      }
+    }
+
+    // Fetch TMDB details by fallback search
+    function fetchTMDBDetails(title, type, year) {
+      // If year is valid, include it; otherwise omit
+      const yearParam = year && year !== "N/A" ? `&year=${year}` : "";
+      const endpoint = `${TMDB_BASE}/search/${type === "tv" ? "tv" : "movie"
+        }?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(
+          title
+        )}${yearParam}`;
+      console.log("TMDB search endpoint:", endpoint);
+      fetch(endpoint)
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.results && data.results.length > 0) {
+            updateMediaDetails(data.results[0], type);
+          } else {
+            console.error("No TMDB results found for", title);
+          }
+        })
+        .catch((error) => console.error("Error fetching TMDB details:", error));
+    }
+
+    // Fetch TMDB details by known ID
+    function fetchTMDBDetailsById(tmdbId, type) {
+      const endpoint = `${TMDB_BASE}/${type === "tv" ? "tv" : "movie"
+        }/${tmdbId}?api_key=${TMDB_API_KEY}&append_to_response=release_dates,content_ratings`;
+      console.log("Fetching TMDB details by id:", endpoint);
+      fetch(endpoint)
+        .then((response) => response.json())
+        .then((data) => updateMediaDetails(data, type))
+        .catch((error) =>
+          console.error("Error fetching TMDB details by ID:", error)
+        );
+    }
+
+    // Update media details with overview & cast
+    function updateMediaDetails(media, mediaType) {
+      // Poster & overview
+      const posterUrl = media.poster_path
+        ? `https://image.tmdb.org/t/p/w500${media.poster_path}`
+        : "";
+      const overview = media.overview || "";
+      document.getElementById("mediaDetails").innerHTML = `
+          <div class="media-content">
+            <div class="poster-wrapper">
+              <img src="${posterUrl}" alt="${media.title || media.name
+        } Poster" class="poster">
+            </div>
+            <div class="details-wrapper">
+              <h5>Overview</h5>
+              <p>${overview}</p>
+            </div>
+          </div>
+        `;
+      // Additional info
+      const genres = media.genres
+        ? media.genres.map((g) => g.name).join(", ")
+        : "N/A";
+      let countries = "N/A";
+      if (
+        mediaType === "movie" &&
+        media.production_countries &&
+        media.production_countries.length > 0
+      ) {
+        countries = media.production_countries.map((c) => c.name).join(", ");
+      } else if (
+        mediaType === "tv" &&
+        media.origin_country &&
+        media.origin_country.length > 0
+      ) {
+        countries = media.origin_country.join(", ");
+      }
+      const userRating = media.vote_average
+        ? `${media.vote_average.toFixed(1)}/10`
+        : "N/A";
+      let ageRating = "NR";
+      if (mediaType === "movie" && media.release_dates && media.release_dates.results) {
+        const usRelease = media.release_dates.results.find(
+          (r) => r.iso_3166_1 === "US"
+        );
+        if (
+          usRelease &&
+          usRelease.release_dates &&
+          usRelease.release_dates.length > 0
+        ) {
+          ageRating = usRelease.release_dates[0].certification || "NR";
+        }
+      } else if (
+        mediaType === "tv" &&
+        media.content_ratings &&
+        media.content_ratings.results
+      ) {
+        const usRating = media.content_ratings.results.find(
+          (r) => r.iso_3166_1 === "US"
+        );
+        if (usRating) {
+          ageRating = usRating.rating || "NR";
+        }
+      }
+      const additionalInfoHTML = `
+          <div class="media-additional-info">
+            <p><strong>Genre:</strong> ${genres}</p>
+            <p><strong>Country:</strong> ${countries}</p>
+            <p><strong>User Rating:</strong> ${userRating}</p>
+            <p><strong>Age Rating:</strong> ${ageRating}</p>
+          </div>
+        `;
+      document.getElementById("mediaInfo").innerHTML += additionalInfoHTML;
+      fetchCast(media.id, mediaType);
+    }
+
+    // Fetch cast from TMDB
+    function fetchCast(mediaId, mediaType) {
+      const creditsEndpoint = `${TMDB_BASE}/${mediaType === "tv" ? "tv" : "movie"}/${mediaId}/credits?api_key=${TMDB_API_KEY}`;
+      fetch(creditsEndpoint)
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.cast && data.cast.length > 0) {
+            const castList = data.cast
+              .slice(0, 10)
+              .map(
+                (cast) => `
+                  <div class="cast-item">
+                    <img src="${cast.profile_path
+                    ? `https://image.tmdb.org/t/p/w500${cast.profile_path}`
+                    : '/images/default_cast.png'  // Changed this line
+                  }" alt="${cast.name}" class="cast-image" />
+                    <div class="cast-name">${cast.name}</div>
+                    <div class="cast-character">${cast.character}</div>
+                  </div>
+                `
+              )
+              .join("");
+            const castHTML = `
+              <div class="cast-wrapper">
+                <h5>Top Cast</h5>
+                <div class="cast-list">${castList}</div>
+              </div>
+            `;
+            document.getElementById("mediaDetails").innerHTML += castHTML;
+          }
+        })
+        .catch((error) => console.error("Error fetching cast details:", error));
+    }
+
+    // Create server dropdown for episodes
+    function createServerDropdown(servers) {
+      const tvControlsEl = document.getElementById("tvControls");
+      const serverDropdownContainer = document.getElementById(
+        "serverDropdownContainer"
+      );
+      serverDropdownContainer.innerHTML = "";
+      // Create a <select> for server
+      const dropdown = document.createElement("select");
+      dropdown.id = "serverDropdown";
+      dropdown.className = "form-select w-100 mx-auto";
+      dropdown.innerHTML = `<option value="" disabled selected>Select Server</option>`;
+
+      servers.forEach((server, index) => {
+        const option = document.createElement("option");
+        option.value = index;
+        option.textContent = server.server_name;
+        dropdown.appendChild(option);
+      });
+
+      dropdown.addEventListener("change", (e) => {
+        const selectedIndex = e.target.value;
+        const selectedServer = servers[selectedIndex];
+        let episodeArray = [];
+        if (
+          selectedServer.server_data &&
+          Array.isArray(selectedServer.server_data) &&
+          selectedServer.server_data.length > 0
+        ) {
+          episodeArray = selectedServer.server_data;
+        } else {
+          episodeArray = selectedServer;
+        }
+        currentServerEpisodes = episodeArray;
+        currentEpisodePage = 1;
+        // Show search & pagination controls
+        document.getElementById("episodeSearchWrapper").style.display = "block";
+        document.getElementById("episodeList").style.display = "flex";
+        document.getElementById("episodePagination").style.display = "flex";
+
+        // Reset search & filter
+        document.getElementById("episodeSearch").value = "";
+        filteredEpisodes = [...currentServerEpisodes];
+
+        // Attempt to load from localStorage
+        const storedSelectionStr = localStorage.getItem("watchSelection");
+        let storedSelection = null;
+        if (storedSelectionStr) {
+          try {
+            storedSelection = JSON.parse(storedSelectionStr);
+          } catch (e) { }
+        }
+
+        if (
+          storedSelection &&
+          storedSelection.title ===
+          document.getElementById("mediaTitle").textContent &&
+          storedSelection.serverIndex == selectedIndex &&
+          typeof storedSelection.episodeIndex === "number"
+        ) {
+          currentEpisodeSelectedIndex = storedSelection.episodeIndex;
+        } else {
+          currentEpisodeSelectedIndex = 0;
+        }
+        // Load the first (or saved) episode
+        loadVideo(filteredEpisodes[currentEpisodeSelectedIndex].link_m3u8);
+        updateEpisodePagination();
+        updateEpisodeNavButtons();
+        updateEpisodeInfo();
+        saveWatchSelection();
+      });
+
+      serverDropdownContainer.appendChild(dropdown);
+
+      // Auto-select first server if available
+      if (servers.length > 0) {
+        dropdown.selectedIndex = 1;
+        dropdown.dispatchEvent(new Event("change"));
+      }
+
+      tvControlsEl.style.display = "block";
+    }
+
+    // Episode list pagination
+    function updateEpisodePagination() {
+      const episodeListDiv = document.getElementById("episodeList");
+      episodeListDiv.innerHTML = "";
+      const episodes = filteredEpisodes.length
+        ? filteredEpisodes
+        : currentServerEpisodes;
+      const total = episodes.length;
+      const totalPages = Math.ceil(total / episodesPerPage);
+
+      // Which page are we on, based on selected index
+      currentEpisodePage = Math.floor(
+        currentEpisodeSelectedIndex / episodesPerPage
+      ) + 1;
+
+      const startIdx = (currentEpisodePage - 1) * episodesPerPage;
+      const endIdx = Math.min(startIdx + episodesPerPage, total);
+
+      document.getElementById("episodePageInfo").textContent = `Page ${currentEpisodePage} of ${totalPages}`;
+
+      for (let i = startIdx; i < endIdx; i++) {
+        const btn = document.createElement("button");
+        btn.className = "btn btn-outline-primary btn-sm";
+        btn.textContent = episodes[i].name;
+        if (i === currentEpisodeSelectedIndex) {
+          btn.classList.remove("btn-outline-primary");
+          btn.classList.add("btn-primary", "text-white");
+        }
+        btn.addEventListener("click", () => {
+          currentEpisodeSelectedIndex = i;
+          loadVideo(episodes[i].link_m3u8);
+          updateEpisodePagination();
+          updateEpisodeNavButtons();
+          updateEpisodeInfo();
+          saveWatchSelection();
+        });
+        episodeListDiv.appendChild(btn);
+      }
+
+      // Show/hide prev/next pagination
+      document.getElementById("episodePrevPage").style.display =
+        currentEpisodePage > 1 ? "inline-block" : "none";
+      document.getElementById("episodeNextPage").style.display =
+        currentEpisodePage < totalPages ? "inline-block" : "none";
+    }
+
+    // Next/prev page
+    document
+      .getElementById("episodePrevPage")
+      .addEventListener("click", () => {
+        currentEpisodePage--;
+        updateEpisodePagination();
+      });
+    document
+      .getElementById("episodeNextPage")
+      .addEventListener("click", () => {
+        currentEpisodePage++;
+        updateEpisodePagination();
+      });
+
+    // Next/prev episode
+    function updateEpisodeNavButtons() {
+      const episodes = filteredEpisodes.length
+        ? filteredEpisodes
+        : currentServerEpisodes;
+      const prevEpisodeBtn = document.getElementById("prevEpisodeBtn");
+      const nextEpisodeBtn = document.getElementById("nextEpisodeBtn");
+      prevEpisodeBtn.style.display =
+        currentEpisodeSelectedIndex > 0 ? "inline-block" : "none";
+      nextEpisodeBtn.style.display =
+        currentEpisodeSelectedIndex < episodes.length - 1
+          ? "inline-block"
+          : "none";
+    }
+
+    document
+      .getElementById("prevEpisodeBtn")
+      .addEventListener("click", () => {
+        const episodes = filteredEpisodes.length
+          ? filteredEpisodes
+          : currentServerEpisodes;
+        if (currentEpisodeSelectedIndex > 0) {
+          currentEpisodeSelectedIndex--;
+          loadVideo(episodes[currentEpisodeSelectedIndex].link_m3u8);
+          currentEpisodePage = Math.floor(
+            currentEpisodeSelectedIndex / episodesPerPage
+          ) + 1;
+          updateEpisodePagination();
+          updateEpisodeNavButtons();
+          updateEpisodeInfo();
+          saveWatchSelection();
+        }
+      });
+
+    document
+      .getElementById("nextEpisodeBtn")
+      .addEventListener("click", () => {
+        const episodes = filteredEpisodes.length
+          ? filteredEpisodes
+          : currentServerEpisodes;
+        if (currentEpisodeSelectedIndex < episodes.length - 1) {
+          currentEpisodeSelectedIndex++;
+          loadVideo(episodes[currentEpisodeSelectedIndex].link_m3u8);
+          currentEpisodePage = Math.floor(
+            currentEpisodeSelectedIndex / episodesPerPage
+          ) + 1;
+          updateEpisodePagination();
+          updateEpisodeNavButtons();
+          updateEpisodeInfo();
+          saveWatchSelection();
+        }
+      });
+
+    // Episode info
+    function updateEpisodeInfo() {
+      const episodes = filteredEpisodes.length
+        ? filteredEpisodes
+        : currentServerEpisodes;
+      if (episodes.length > 0) {
+        document.getElementById("nowPlayingText").textContent = `Episode ${episodes[currentEpisodeSelectedIndex].name}`;
+      }
+    }
+
+    // Searching episodes
+    const episodeSearchInput = document.getElementById("episodeSearch");
+    episodeSearchInput.addEventListener("input", () => {
+      const query = episodeSearchInput.value.toLowerCase();
+      filteredEpisodes = currentServerEpisodes.filter(
+        (ep) =>
+          String(ep.name).toLowerCase().includes(query) ||
+          (ep.filename && ep.filename.toLowerCase().includes(query))
+      );
+      currentEpisodePage = 1;
+      currentEpisodeSelectedIndex = 0;
+      if (filteredEpisodes.length > 0) {
+        loadVideo(filteredEpisodes[0].link_m3u8);
+        updateEpisodeInfo();
+      }
+      updateEpisodePagination();
+      updateEpisodeNavButtons();
+      saveWatchSelection();
+    });
+
+    // Save watch selection to localStorage
+    function saveWatchSelection() {
+      const serverDropdown = document.getElementById("serverDropdown");
+      const selection = {
+        title: document.getElementById("mediaTitle").textContent,
+        serverIndex: serverDropdown ? serverDropdown.value : 0,
+        episodeIndex: currentEpisodeSelectedIndex
+      };
+      localStorage.setItem("watchSelection", JSON.stringify(selection));
+    }
+
+    // KKPhim data fetching
+    if (!slug) {
+      console.error("No slug provided in URL");
+    } else {
+      fetch(`https://phimapi.com/phim/${slug}`)
+        .then((response) => response.json())
+        .then((kkphimData) => {
+          if (!kkphimData.status) {
+            throw new Error("KKPhim API returned an error");
+          }
+          const movie = kkphimData.movie;
+          const servers = kkphimData.episodes; // server groups
+
+          // Set title
+          document.getElementById("mediaTitle").textContent = movie.name;
+
+          // Basic info
+          document.getElementById("mediaInfo").innerHTML = `
+              <p><strong>Type:</strong> ${movie.type ||
+            (movie.tmdb && movie.tmdb.type ? movie.tmdb.type : "Movie")
+            }</p>
+              <p><strong>Year:</strong> ${movie.year || ""}</p>
+            `;
+
+          // If we have a valid TMDB ID
+          if (movie.tmdb && movie.tmdb.id && movie.tmdb.id.trim() !== "") {
+            fetchTMDBDetailsById(movie.tmdb.id, movie.tmdb.type);
+          } else if (originName && paramYear && paramType) {
+            // fallback search
+            fetchTMDBDetails(originName, paramType, paramYear);
+          }
+
+          // Episode logic
+          if (servers && servers.length > 0) {
+            createServerDropdown(servers);
+          } else {
+            // No servers => single video?
+            if (movie.video_url) {
+              loadVideo(movie.video_url);
+            } else {
+              console.error("No video URL available");
+            }
+          }
+        })
+        .catch((error) => console.error("Error fetching KKPhim data:", error));
+    }
+  </script>
+  <script src="/js/search_suggest.js"></script>
+</body>
+
+</html>

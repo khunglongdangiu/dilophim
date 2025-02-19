@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Search Results</title>
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
+    integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg=="
+    crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <style>
+    .media-card {
+      cursor: pointer;
+      transition: transform 0.3s ease;
+      margin-bottom: 20px;
+    }
+
+    .media-card:hover {
+      transform: scale(1.05);
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .media-card img {
+      height: 300px;
+      object-fit: cover;
+    }
+
+    .results-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 20px;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <div class="container">
+      <a class="navbar-brand" href="index.html">Media Library</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"
+        aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+          <li class="nav-item">
+            <a class="nav-link active" aria-current="page" href="index.html">Home</a>
+          </li>
+          <!-- Additional links can be added here -->
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container mt-4">
+    <!-- Search form -->
+    <form id="searchForm" class="mb-4" action="result.html" method="get">
+      <div class="input-group">
+        <input type="text" class="form-control" placeholder="Search movies..." name="q" id="searchInput">
+        <button class="btn btn-primary" type="submit">
+          <i class="fa-solid fa-magnifying-glass"></i> Search
+        </button>
+      </div>
+    </form>
+    <h2 id="searchHeading"></h2>
+    <h3>Local Results</h3>
+    <div id="localResults" class="results-grid"></div>
+    <h3 class="mt-5">OPhim Results</h3>
+    <div id="ophimResults" class="results-grid"></div>
+  </div>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const apiKey = "8baba8ab6b8bbe247645bcae7df63d0d"; // Your TMDB API key
+    const TMDB_BASE = "https://api.themoviedb.org/3";
+
+    // Read query parameter "q" from URL
+    const queryParams = new URLSearchParams(window.location.search);
+    const q = queryParams.get("q") ? queryParams.get("q").trim() : "";
+
+    // Set input value and heading
+    const searchInput = document.getElementById("searchInput");
+    const searchHeading = document.getElementById("searchHeading");
+    if (q) {
+      searchInput.value = q;
+      searchHeading.textContent = `Search Results for: "${q}"`;
+    } else {
+      searchHeading.textContent = "Please enter a search query.";
+    }
+
+    // Helper: Map TMDB genre IDs to names (kept for local if needed)
+    function getGenreName(id, type) {
+      const genreMap = {
+        movie: {
+          28: "Action", 12: "Adventure", 16: "Animation", 35: "Comedy",
+          80: "Crime", 99: "Documentary", 18: "Drama", 10751: "Family",
+          14: "Fantasy", 36: "History", 27: "Horror", 10402: "Music",
+          9648: "Mystery", 10749: "Romance", 878: "Science Fiction",
+          10770: "TV Movie", 53: "Thriller", 10752: "War", 37: "Western"
+        },
+        tv: {
+          10759: "Action & Adventure", 16: "Animation", 35: "Comedy",
+          80: "Crime", 99: "Documentary", 18: "Drama", 10751: "Family",
+          10762: "Kids", 9648: "Mystery", 10763: "News", 10764: "Reality",
+          10765: "Sci-Fi & Fantasy", 10766: "Soap", 10767: "Talk",
+          10768: "War & Politics", 37: "Western"
+        }
+      };
+      return genreMap[type]?.[id] || "Unknown";
+    }
+
+    // Enrich local media item using TMDB search.
+    // Use media.origin_name if available (which is often the proper title for TMDB).
+    function enrichLocalMedia(media) {
+      return new Promise((resolve) => {
+        let type = media.episodes ? "tv" : "movie";
+        let tmdbUrl = `${TMDB_BASE}/search/${type}?api_key=${apiKey}&query=${encodeURIComponent(media.title)}&year=${media.year || ""}`;
+        fetch(tmdbUrl)
+          .then(response => response.json())
+          .then(tmdbData => {
+            if (tmdbData.results && tmdbData.results.length > 0) {
+              const result = tmdbData.results[0];
+              const id = result.id;
+              const poster = result.poster_path ? `https://image.tmdb.org/t/p/w500${result.poster_path}` : "https://via.placeholder.com/300x450?text=No+Image";
+              const title = result.title || result.name;
+              const releaseYear = type === "tv" ? (result.first_air_date ? result.first_air_date.split("-")[0] : "N/A") : (result.release_date ? result.release_date.split("-")[0] : "N/A");
+              const card = `
+                <div class="card media-card">
+                  <img src="${poster}" class="card-img-top" alt="${title}">
+                  <div class="card-body">
+                    <h5 class="card-title">${title} (${releaseYear})</h5>
+                    <a href="watch.html?title=${encodeURIComponent(media.title)}&type=${type}&year=${media.year}&source=db" class="btn btn-primary w-100">
+                      <i class="fa-solid fa-play"></i> Watch
+                    </a>
+                  </div>
+                </div>
+              `;
+              resolve(card);
+            } else {
+              const card = `
+                <div class="card media-card">
+                  <div class="card-body">
+                    <h5 class="card-title">${media.title} (${media.year})</h5>
+                    <a href="watch.html?title=${encodeURIComponent(media.title)}&type=${media.episodes ? "tv" : "movie"}&year=${media.year}&source=db" class="btn btn-primary w-100">
+                      <i class="fa-solid fa-play"></i> Watch
+                    </a>
+                  </div>
+                </div>
+              `;
+              resolve(card);
+            }
+          })
+          .catch(err => {
+            console.error("Error enriching local media:", err);
+            resolve("");
+          });
+      });
+    }
+
+    // Enrich Ophim media item using Ophim API fields.
+    // For Ophim results:
+    //   - Use the image from the API by prefixing the thumb_url with "https://img.ophim.live/uploads/movies/"
+    //   - Main title: origin_name with year (if available)
+    //   - Subtitle: name field
+    //   - Filtering by name or origin_name remains unchanged.
+    //   - If no thumb is available, fallback to TMDB search.
+    function enrichOphimMedia(media) {
+      return new Promise((resolve) => {
+        const originName = media.origin_name ? media.origin_name : media.name;
+        const year = media.year ? media.year : "";
+        const secondaryName = media.name ? media.name : "";
+        function buildCard(poster) {
+          const card = `
+            <div class="card media-card">
+              <img src="${poster}" class="card-img-top" alt="${originName}">
+              <div class="card-body">
+                <h5 class="card-title">${originName}${year ? " (" + year + ")" : ""}</h5>
+                <p class="card-text">${secondaryName}</p>
+                <a href="ophim.html?slug=${encodeURIComponent(media.slug)}&source=ophim" class="btn btn-primary w-100">
+                  <i class="fa-solid fa-play"></i> Watch
+                </a>
+              </div>
+            </div>
+          `;
+          resolve(card);
+        }
+        // If thumb_url exists, use it.
+        if (media.thumb_url) {
+          let poster = "https://img.ophim.live/uploads/movies/" + media.thumb_url;
+          buildCard(poster);
+        } else {
+          // Otherwise, if a valid TMDB id exists, try using that.
+          if (media.tmdb && media.tmdb.id) {
+            let type = media.tmdb.type ? media.tmdb.type : "movie";
+            const tmdbUrl = `${TMDB_BASE}/${type}/${media.tmdb.id}?api_key=${apiKey}`;
+            fetch(tmdbUrl)
+              .then(response => response.json())
+              .then(data => {
+                if (data && data.poster_path) {
+                  let poster = `https://image.tmdb.org/t/p/w500${data.poster_path}`;
+                  buildCard(poster);
+                } else {
+                  fallbackTMDBSearch();
+                }
+              })
+              .catch(err => {
+                console.error("Error fetching TMDB details for Ophim:", err);
+                fallbackTMDBSearch();
+              });
+          } else {
+            fallbackTMDBSearch();
+          }
+        }
+        // Fallback TMDB search function: try with year first, then without.
+        function fallbackTMDBSearch() {
+          if (year) {
+            const searchQuery = originName + " y:" + year;
+            const tmdbSearchUrl = `${TMDB_BASE}/search/movie?api_key=${apiKey}&query=${encodeURIComponent(searchQuery)}`;
+            fetch(tmdbSearchUrl)
+              .then(response => response.json())
+              .then(tmdbData => {
+                if (tmdbData.results && tmdbData.results.length > 0 && tmdbData.results[0].poster_path) {
+                  let poster = `https://image.tmdb.org/t/p/w500${tmdbData.results[0].poster_path}`;
+                  buildCard(poster);
+                } else {
+                  // Try without year
+                  const tmdbSearchUrlFallback = `${TMDB_BASE}/search/movie?api_key=${apiKey}&query=${encodeURIComponent(originName)}`;
+                  fetch(tmdbSearchUrlFallback)
+                    .then(response => response.json())
+                    .then(fallbackData => {
+                      if (fallbackData.results && fallbackData.results.length > 0 && fallbackData.results[0].poster_path) {
+                        let poster = `https://image.tmdb.org/t/p/w500${fallbackData.results[0].poster_path}`;
+                        buildCard(poster);
+                      } else {
+                        buildCard("https://via.placeholder.com/300x450?text=No+Image");
+                      }
+                    })
+                    .catch(err => {
+                      console.error("Error in fallback TMDB search for Ophim:", err);
+                      buildCard("https://via.placeholder.com/300x450?text=No+Image");
+                    });
+                }
+              })
+              .catch(err => {
+                console.error("Error searching TMDB for Ophim:", err);
+                buildCard("https://via.placeholder.com/300x450?text=No+Image");
+              });
+          } else {
+            const tmdbSearchUrl = `${TMDB_BASE}/search/movie?api_key=${apiKey}&query=${encodeURIComponent(originName)}`;
+            fetch(tmdbSearchUrl)
+              .then(response => response.json())
+              .then(tmdbData => {
+                if (tmdbData.results && tmdbData.results.length > 0 && tmdbData.results[0].poster_path) {
+                  let poster = `https://image.tmdb.org/t/p/w500${tmdbData.results[0].poster_path}`;
+                  buildCard(poster);
+                } else {
+                  buildCard("https://via.placeholder.com/300x450?text=No+Image");
+                }
+              })
+              .catch(err => {
+                console.error("Error searching TMDB for Ophim:", err);
+                buildCard("https://via.placeholder.com/300x450?text=No+Image");
+              });
+          }
+        }
+      });
+    }
+
+    // Load local results from db.json and filter by query.
+    function loadLocalResults(query) {
+      fetch("db.json")
+        .then(response => response.json())
+        .then(data => {
+          const localResultsDiv = document.getElementById("localResults");
+          localResultsDiv.innerHTML = "";
+          const allMedia = [...data.tvShows, ...data.movies];
+          const filtered = allMedia.filter(media => {
+            const titleMatch = media.title && media.title.toLowerCase().includes(query.toLowerCase());
+            const originMatch = media.origin_name && media.origin_name.toLowerCase().includes(query.toLowerCase());
+            return titleMatch || originMatch;
+          });
+          if (filtered.length === 0) {
+            localResultsDiv.innerHTML = "<p>No local results found.</p>";
+            return;
+          }
+          Promise.all(filtered.map(media => enrichLocalMedia(media)))
+            .then(cards => {
+              localResultsDiv.innerHTML = cards.join("");
+            });
+        })
+        .catch(error => console.error("Error fetching local data:", error));
+    }
+
+    // Load Ophim results by fetching multiple pages and filtering by query.
+    // (Adjust MAX_PAGES as needed; note that fetching many pages may affect performance.)
+    function loadOphimResults(query) {
+      const MAX_PAGES = 1186; // Adjust as needed
+      let promises = [];
+      for (let page = 1; page <= MAX_PAGES; page++) {
+        promises.push(
+          fetch(`https://ophim1.com/danh-sach/phim-moi-cap-nhat?page=${page}`)
+            .then(response => response.json())
+        );
+      }
+      Promise.all(promises)
+        .then(results => {
+          let allItems = [];
+          results.forEach(data => {
+            if (data && data.items && data.items.length > 0) {
+              allItems = allItems.concat(data.items);
+            }
+          });
+          const ophimResultsDiv = document.getElementById("ophimResults");
+          const filtered = allItems.filter(media => {
+            const nameMatch = media.name && media.name.toLowerCase().includes(query.toLowerCase());
+            const originMatch = media.origin_name && media.origin_name.toLowerCase().includes(query.toLowerCase());
+            return nameMatch || originMatch;
+          });
+          if (filtered.length === 0) {
+            ophimResultsDiv.innerHTML = "<p>No Ophim results found.</p>";
+            return;
+          }
+          Promise.all(filtered.map(media => enrichOphimMedia(media)))
+            .then(cards => {
+              ophimResultsDiv.innerHTML = cards.join("");
+            });
+        })
+        .catch(error => console.error("Error fetching Ophim data:", error));
+    }
+
+    if (q) {
+      loadLocalResults(q);
+      loadOphimResults(q);
+    }
+  </script>
+</body>
+
+</html>
